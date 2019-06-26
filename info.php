@@ -133,7 +133,6 @@ $css_nonce = bin2hex(random_bytes(8));
 // INFO_ALL            -1  Shows all of the above.
 
 /**
- * https://www.php.net/manual/en/function.phpinfo.php#117961
  * https://stackoverflow.com/questions/11254619/get-contents-of-body-without-doctype-html-head-and-body-tags
  * @return [type] [description]
  */
