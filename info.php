@@ -16,12 +16,12 @@ if (!defined('PHP_VERSION_ID')) {
 
 } else {
     $script_root_path = $_SERVER['DOCUMENT_ROOT'];
-    $sql_variables_query = 'SHOW VARIABLES LIKE "%version%";';
     $bootstrap_files = [
-        'PrestaShop' => $script_root_path.'/config/config.inc.php',
-        'Wordpress'  => $script_root_path.'/wp-load.php',
-        'phpBB'      => $script_root_path.'/common.php',
-        'PHP'        => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
+        'PrestaShop 1.6' => $script_root_path.'/config/settings.inc.php',
+        'PrestaShop 1.7' => $script_root_path.'/app/parameters.php',
+        'Wordpress'      => $script_root_path.'/wp-config.php',
+        'phpBB'          => $script_root_path.'/config.php',
+        'php'            => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
     ];
 
     $script = $bootstrap_file = false;
@@ -34,50 +34,64 @@ if (!defined('PHP_VERSION_ID')) {
     }
     unset($bootstrap_files, $k, $v);
 
-    $dbinfo = [];
+    $dbhost = $dbname = $dbuser = $dbpass = false;
     switch ($script) {
-        case 'PrestaShop':
+        case 'PrestaShop 1.6':
             include_once $bootstrap_file;
-            $dbinfo = DB::getInstance()->executeS($query);
+            $dbhost = _DB_SERVER_;
+            $dbname = _DB_NAME_;
+            $dbuser = _DB_USER_;
+            $dbpass = _DB_PASSWD_;
+            break;
+        case 'PrestaShop 1.7':
+            $config = include_once $bootstrap_file;
+            $config = $config['parameters'];
+            $dbhost = $config['database_host'];
+            $dbname = $config['database_name'];
+            $dbuser = $config['database_user'];
+            $dbpass = $config['database_password'];
             break;
         case 'Wordpress':
-            define('SHORTINIT', true);
             include_once $bootstrap_file;
-            $wpdb = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
-            // https://codex.wordpress.org/Class_Reference/wpdb#SELECT_Generic_Results
-            $dbinfo = $wpdb->get_results($query, ARRAY_A);
+            $dbhost = DB_HOST;
+            $dbname = DB_NAME;
+            $dbuser = DB_USER;
+            $dbpass = DB_PASSWORD;
             break;
         case 'phpBB':
-            define('IN_PHPBB', true);
-            $phpbb_root_path = $script_root_path.'/';
-            $phpEx = 'php';
             include_once $bootstrap_file;
-            $result = $db->sql_query($sql_variables_query);
-            $dbinfo = $db->sql_fetchrowset($result);
-            $db->sql_freeresult($result);
+            //$dbhost = $dbhost;
+            //$dbname = $dbname;
+            //$dbuser = $dbuser;
+            $dbpass = $dbpasswd;
             break;
-        case 'PHP':
+        case 'php':
             include_once $bootstrap_file;
-            if (extension_loaded('pdo_mysql')) {
-                try {
-                    $pdo = new \PDO("mysql:host=$server;dbname=$db", $user, $pass);
-                    $stm = $pdo->query($query);
-                    $stm->setFetchMode(PDO::FETCH_ASSOC);
-                    $dbinfo = $stm->fetchAll();
-                } catch (Exception $e) {
-                    echo '<div class="container"><h4>PDO Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
-                }
-            } elseif (extension_loaded('mysqli')) {
-                try {
-                    $dbh = new mysqli($server, $user, $pass, $db);
-                    $dbinfo = $dbh->query($query);
-                    $rows->free();
-                    $dbh->close();
-                } catch (Exception $e) {
-                    echo '<div class="container"><h4>Mysqli Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
-                }
+            // since it's my file I can name variables as I need: $dbhost, $dbname, $dbuser, $dbpass
+            break;
+    }
+
+    $sql_variables_query = 'SHOW VARIABLES LIKE "%version%";';
+    $dbinfo = [];
+    if ($dbhost && $dbname && $dbuser && $dbpass) {
+        if (extension_loaded('pdo_mysql')) {
+            try {
+                $pdo = new PDO("mysql:host=$dbhost;dbname=$dbname;charset=utf8mb4", $dbuser, $dbpass, [PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+                $stm = $pdo->query($sql_variables_query);
+                $dbinfo = $stm->fetchAll();
+            } catch (Exception $e) {
+                echo '<div class="container"><h4>PDO Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
             }
-            break;
+        } elseif (extension_loaded('mysqli')) {
+            try {
+                $dbh = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+                $dbinfo = $dbh->query($sql_variables_query);
+                $rows->free();
+                $dbh->close();
+            } catch (Exception $e) {
+                echo '<div class="container"><h4>Mysqli Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
+            }
+        }
     }
 
     $server_info = [];
