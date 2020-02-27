@@ -1,65 +1,102 @@
 <?php
-
 // comment line bellow to show this page, uncomment to hide it
 //exit;
 
+use \phpbb\db\tools\tools;
+
 ini_set('display_errors', '1');
 
-$init_files = [
-    'prestashop' => [
-        $_SERVER['DOCUMENT_ROOT'].'/config/config.inc.php',
-    ],
-    'wordpress'  => [
-        $_SERVER['DOCUMENT_ROOT'].'/wp-load.php',
-    ],
-];
-foreach ($init_files as $key => $files) {
-    $source = $key;
-    foreach ($files as $file) {
-        if (!is_file($file) || !is_readable($file)) {
-            $source = false;
-            continue 2;
+$page_title = $_SERVER['HTTP_HOST'].' Server Info ['.date('Y-m-d His').']';
+
+if (!defined('PHP_VERSION_ID')) {
+    $server_info['PHP Info'][''][] = [
+        'key' => 'Version too low',
+        'value' => 'Sorry, dude! Your PHP is ridiculously outdated, like lower than 5.2.7!',
+    ];
+
+} else {
+    $script_root_path = $_SERVER['DOCUMENT_ROOT'];
+    $sql_variables_query = 'SHOW VARIABLES LIKE "%version%";';
+    $bootstrap_files = [
+        'PrestaShop' => $script_root_path.'/config/config.inc.php',
+        'Wordpress'  => $script_root_path.'/wp-load.php',
+        'phpBB'      => $script_root_path.'/common.php',
+        'php'        => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
+    ];
+
+    $script = $bootstrap_file = false;
+    foreach ($bootstrap_files as $k => $v) {
+        if (is_file($v) && is_readable($v)) {
+            $script = $k;
+            $bootstrap_file = $v;
+            break;
         }
     }
-    if ($source) {
-        break;
-    }
-}
+    unset($bootstrap_files, $k, $v);
 
-$server_info = [];
-if ($source && isset($init_files[$source])) {
-    $query = 'SHOW VARIABLES LIKE "%version%";';
-    switch ($source) {
-        case 'wordpress':
+    $dbinfo = [];
+    switch ($script) {
+        case 'PrestaShop':
+            include_once $bootstrap_file;
+            $dbinfo = DB::getInstance()->executeS($query);
+            break;
+        case 'Wordpress':
             define('SHORTINIT', true);
-            break;
-    }
-    foreach ($init_files[$source] as $file) {
-        include_once $file;
-    }
-    switch ($source) {
-        case 'prestashop':
-            foreach (DB::getInstance()->executeS($query) as $key => $row) {
-                $server_info['Database Server Info'][''][] = [
-                    'key' => $row['Variable_name'],
-                    'value' => $row['Value'],
-                ];
-            }
-            break;
-        case 'wordpress':
+            include_once $bootstrap_file;
             $wpdb = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
             // https://codex.wordpress.org/Class_Reference/wpdb#SELECT_Generic_Results
-            foreach ($wpdb->get_results($query, ARRAY_A) as $key => $row) {
-                $server_info['Database Server Info'][''][] = [
-                    'key' => $row['Variable_name'],
-                    'value' => $row['Value'],
-                ];
+            $dbinfo = $wpdb->get_results($query, ARRAY_A);
+            break;
+        case 'phpBB':
+            define('IN_PHPBB', true);
+            $phpbb_root_path = $script_root_path.'/';
+            $phpEx = 'php';
+            include_once $bootstrap_file;
+            $result = $db->sql_query($sql_variables_query);
+            $dbinfo = $db->sql_fetchrowset($result);
+            $db->sql_freeresult($result);
+            break;
+        case 'php':
+            include_once $bootstrap_file;
+            if (extension_loaded('pdo_mysql')) {
+                try {
+                    $pdo = new \PDO("mysql:host=$server;dbname=$db", $user, $pass);
+                    $stm = $pdo->query($query);
+                    $stm->setFetchMode(PDO::FETCH_ASSOC);
+                    $dbinfo = $stm->fetchAll();
+                } catch (Exception $e) {
+                    echo '<div class="container"><h4>PDO Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
+                }
+            } elseif (extension_loaded('mysqli')) {
+                try {
+                    $dbh = new mysqli($server, $user, $pass, $db);
+                    $dbinfo = $dbh->query($query);
+                    $rows->free();
+                    $dbh->close();
+                } catch (Exception $e) {
+                    echo '<div class="container"><h4>Mysqli Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
+                }
             }
             break;
     }
-}
 
-$css_nonce = bin2hex(random_bytes(8));
+    $server_info = [];
+    if ($dbinfo) {
+        foreach ($dbinfo as $row) {
+            $server_info['Database Server Info'][''][] = [
+                'key' => $row['Variable_name'],
+                'value' => $row['Value'],
+            ];
+        }
+    }
+    unset($dbinfo);
+
+    $css_nonce = version_compare(PHP_VERSION, '7.0.0', '>=')
+        ? bin2hex(random_bytes(8))
+        : function_exists('openssl_random_pseudo_bytes')
+            ? bin2hex(openssl_random_pseudo_bytes(8))
+            : '8624038bae6e0b3e';
+}
 
 ?><!doctype html>
 
@@ -68,7 +105,7 @@ $css_nonce = bin2hex(random_bytes(8));
 <head>
   <meta charset="utf-8">
 
-  <title></title>
+  <title><?=$page_title?></title>
   <meta name="description" content="">
   <meta name="author" content="">
   <meta http-equiv="Content-Security-Policy" content="style-src 'nonce-<?=$css_nonce?>'">
@@ -84,6 +121,7 @@ $css_nonce = bin2hex(random_bytes(8));
     caption{background:#eee;font-size:1.6em;padding:.7em}
     td{max-width:32rem;overflow-wrap:break-word}
     td > a{float:right}
+    .container:first-child{margin-top:2.5rem}
   </style>
 
 </head>
@@ -113,11 +151,16 @@ $css_nonce = bin2hex(random_bytes(8));
         </table>
 
         <?php } ?>
-        <?=phpinfoHtml()?>
 
     </div>
 
     <?php } ?>
+
+    <div class="container">
+
+        <?=phpinfoHtml()?>
+
+    </div>
 
 </body>
 
@@ -133,6 +176,7 @@ $css_nonce = bin2hex(random_bytes(8));
 // INFO_ALL            -1  Shows all of the above.
 
 /**
+ * https://www.php.net/manual/en/function.phpinfo.php#117961
  * https://stackoverflow.com/questions/11254619/get-contents-of-body-without-doctype-html-head-and-body-tags
  * @return [type] [description]
  */
