@@ -21,7 +21,7 @@ if (!defined('PHP_VERSION_ID')) {
         'PrestaShop' => $script_root_path.'/config/config.inc.php',
         'Wordpress'  => $script_root_path.'/wp-load.php',
         'phpBB'      => $script_root_path.'/common.php',
-        'php'        => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
+        'PHP'        => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
     ];
 
     $script = $bootstrap_file = false;
@@ -56,7 +56,7 @@ if (!defined('PHP_VERSION_ID')) {
             $dbinfo = $db->sql_fetchrowset($result);
             $db->sql_freeresult($result);
             break;
-        case 'php':
+        case 'PHP':
             include_once $bootstrap_file;
             if (extension_loaded('pdo_mysql')) {
                 try {
