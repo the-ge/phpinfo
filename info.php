@@ -21,7 +21,7 @@ if (!defined('PHP_VERSION_ID')) {
         'PrestaShop 1.7' => $script_root_path.'/app/parameters.php',
         'Wordpress'      => $script_root_path.'/wp-config.php',
         'phpBB'          => $script_root_path.'/config.php',
-        'php'            => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
+        'PHP'            => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
     ];
 
     $script = $bootstrap_file = false;
@@ -65,7 +65,7 @@ if (!defined('PHP_VERSION_ID')) {
             //$dbuser = $dbuser;
             $dbpass = $dbpasswd;
             break;
-        case 'php':
+        case 'PHP':
             include_once $bootstrap_file;
             // since it's my file I can name variables as I need: $dbhost, $dbname, $dbuser, $dbpass
             break;
