@@ -200,7 +200,7 @@ function phpinfoHtml()
     phpinfo(INFO_ALL);
     $raw = new DOMDocument;
     $tmp = new DOMDocument;
-    $raw->loadHTML(ob_get_clean());
+    @$raw->loadHTML(ob_get_clean());
     $body = $raw->getElementsByTagName('body')->item(0);
     foreach ($body->childNodes as $child){
         $tmp->appendChild($tmp->importNode($child, true));
