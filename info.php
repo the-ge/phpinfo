@@ -105,13 +105,14 @@ if (!defined('PHP_VERSION_ID')) {
     }
     unset($dbinfo);
 
-    (
-        $css_nonce = version_compare(PHP_VERSION, '7.0.0', '>=')
-        ? bin2hex(random_bytes(8))
-        : function_exists('openssl_random_pseudo_bytes')
-    )
-        ? bin2hex(openssl_random_pseudo_bytes(8))
-        : '8624038bae6e0b3e';
+    $css_nonce_length = 8;
+    $css_nonce = function_exists('random_bytes')
+        ? bin2hex(random_bytes($css_nonce_length))
+        : (
+            function_exists('openssl_random_pseudo_bytes')
+            ? bin2hex(openssl_random_pseudo_bytes($css_nonce_length))
+            : substr(md5(uniqid(rand(), true)), 0, $css_nonce_length)
+        );
 }
 
 ?><!doctype html>
