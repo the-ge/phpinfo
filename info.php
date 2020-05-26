@@ -105,11 +105,13 @@ if (!defined('PHP_VERSION_ID')) {
     }
     unset($dbinfo);
 
-    $css_nonce = version_compare(PHP_VERSION, '7.0.0', '>=')
+    (
+        $css_nonce = version_compare(PHP_VERSION, '7.0.0', '>=')
         ? bin2hex(random_bytes(8))
         : function_exists('openssl_random_pseudo_bytes')
-            ? bin2hex(openssl_random_pseudo_bytes(8))
-            : '8624038bae6e0b3e';
+    )
+        ? bin2hex(openssl_random_pseudo_bytes(8))
+        : '8624038bae6e0b3e';
 }
 
 ?><!doctype html>
