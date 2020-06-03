@@ -17,8 +17,8 @@ if (!defined('PHP_VERSION_ID')) {
 } else {
     $script_root_path = $_SERVER['DOCUMENT_ROOT'];
     $bootstrap_files = [
+        'PrestaShop 1.7' => $script_root_path.'/app/config/parameters.php',
         'PrestaShop 1.6' => $script_root_path.'/config/settings.inc.php',
-        'PrestaShop 1.7' => $script_root_path.'/app/parameters.php',
         'Wordpress'      => $script_root_path.'/wp-config.php',
         'phpBB'          => $script_root_path.'/config.php',
         'PHP'            => pathinfo($_SERVER['DOCUMENT_ROOT'], PATHINFO_DIRNAME).'/backup/.db.php',
