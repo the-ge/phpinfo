@@ -1,4 +1,9 @@
 <?php
+/**
+ * 03.06.2020
+ * v 0.0.4
+ */
+
 // comment line bellow to show this page, uncomment to hide it
 //exit;
 
@@ -71,7 +76,7 @@ if (!defined('PHP_VERSION_ID')) {
             break;
     }
 
-    $sql_variables_query = 'SHOW VARIABLES LIKE "%version%";';
+    $sql_variables_query = 'SHOW VARIABLES;';
     $dbinfo = [];
     if ($dbhost && $dbname && $dbuser && $dbpass) {
         if (extension_loaded('pdo_mysql')) {
@@ -89,7 +94,7 @@ if (!defined('PHP_VERSION_ID')) {
                 $rows->free();
                 $dbh->close();
             } catch (Exception $e) {
-                echo '<div class="container"><h4>Mysqli Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
+                echo '<div class="container"><h4>MySQLi Error:</h4><pre><code>'.$e->getMessage().'</code></pre></div>';
             }
         }
     }
